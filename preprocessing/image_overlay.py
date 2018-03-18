@@ -1,6 +1,7 @@
 import cv2
 import os
 import re
+import numpy as np
 from preprocessing import WORKING_PATH
 
 # ! When specifying absolute path, use /Users/username/ instead of ~/
@@ -18,9 +19,12 @@ OUTPUT_PATH_IMAGE_MASK_RGB = os.path.abspath(os.path.join(WORKING_PATH, 'overlay
 # Overlay of all masks to the same image, Gray mode
 OUTPUT_PATH_IMAGE_MASK_GRAY = os.path.abspath(os.path.join(WORKING_PATH, 'overlay_gray'))
 
+# Labels image
+OUTPUT_PATH_IMAGE_LABELS = os.path.abspath(os.path.join(WORKING_PATH, 'overlay_labels'))
+
 # Summary of masks numbers of each image
 # For visualization purpose
-OUTPUT_PATH_SUMMARY_FILE = os.path.abspath(os.path.join(WORKING_PATH, 'summary.csv'))
+OUTPUT_PATH_SUMMARY_FILE = os.path.abspath(os.path.join(WORKING_PATH, 'cellnumber_summary.csv'))
 
 # Regex to find target directory for image processing
 VALID_PATH_RE = re.compile('.*/stage1_train/[A-Za-z0-9]+$')
@@ -41,6 +45,37 @@ def check_path(path):
 
     if not os.path.exists(path):
         os.makedirs(path)
+
+
+def convert_to_labels(labels, img):
+    """
+    Map from image to labels for training
+    2: margin
+    1: nuclei
+    0: background
+    
+    :param labels: numpy array. has the same shape as img 
+    :param img: input matrix
+    :return: updated labels
+    """
+    # Narrow down to rectangle with nuclei
+    positive_pos = np.where(img)
+    (xmin, ymin) = np.amin(positive_pos, axis=1)
+    (xmax, ymax) = np.amax(positive_pos, axis=1)
+
+    h, w = img.shape
+    for i in xrange(max(xmin-1, 0), min(xmax+2, h)):
+        for j in xrange(max(ymin-1, 0), min(ymax+2, w)):
+            k_xmin,k_xmax = max(i-1,0),min(i+2,h)
+            k_ymin,k_ymax = max(j-1,0),min(j+2,w)
+            cnt = np.count_nonzero(img[k_xmin:k_xmax, k_ymin:k_ymax])
+            # all > 0 : 1. all == 0: 0, else: 2
+
+            if cnt == (k_xmax-k_xmin) * (k_ymax-k_ymin):
+                labels[i, j] = 1
+            elif cnt > 0:
+                labels[i, j] = 2
+    return labels
 
 
 def save_to_csv(content):
@@ -85,13 +120,16 @@ def main():
     total_images = 0
 
     # Path check
-    map(check_path, [OUTPUT_PATH_MASK, OUTPUT_PATH_IMAGE,
-                     OUTPUT_PATH_IMAGE_MASK_RGB, OUTPUT_PATH_IMAGE_MASK_GRAY])
+    path_list = [OUTPUT_PATH_IMAGE, OUTPUT_PATH_MASK,
+                 OUTPUT_PATH_IMAGE_MASK_RGB, OUTPUT_PATH_IMAGE_MASK_GRAY,
+                 OUTPUT_PATH_IMAGE_LABELS]
+    map(check_path, path_list)
     if os.path.exists(OUTPUT_PATH_SUMMARY_FILE):
         os.remove(OUTPUT_PATH_SUMMARY_FILE)
 
     for root, subFolders, files in os.walk(INPUT_PATH):
         # Determine if current path is the useful one
+        # (looking for root composed of id numbers)
         # by looking for preset Regex pattern in the path
         match = VALID_PATH_RE.search(root)
         try:
@@ -101,34 +139,40 @@ def main():
 
         # Extract image information
         total_images += 1
-        image_label = IMAGE_LABEL_RE.search(root).group(1)
-        original = cv2.imread(os.path.join(root, 'images', image_label+'.png'))
+        image_id = IMAGE_LABEL_RE.search(root).group(1)
+        original = cv2.imread(os.path.join(root, 'images', image_id+'.png'))
 
         # Overlay masks
         masks = None
         # No subdirectory, but files, will be found in path root/masks
         for _root, _, _files in os.walk(os.path.join(root, 'masks')):
-            save_to_csv([image_label, len(_files)])
+            save_to_csv([image_id, len(_files)])
             masks = None
+            labels = np.zeros(original.shape[0:2], np.uint8) # No color channel
 
             for _file in _files:
+                foreground = cv2.cvtColor(cv2.imread(os.path.join(_root, _file)), cv2.COLOR_BGR2GRAY)
                 if masks is None:
-                    masks = cv2.cvtColor(cv2.imread(os.path.join(_root, _file)), cv2.COLOR_BGR2GRAY)
+                    masks = foreground
                 else:
-                    foreground = cv2.cvtColor(cv2.imread(os.path.join(_root, _file)), cv2.COLOR_BGR2GRAY)
                     masks = cv2.add(masks, foreground)
+                labels = convert_to_labels(labels, foreground)
+
 
         # Overlay masks to original images
         overlay_rgb = cv2.add(original, cv2.cvtColor(masks, cv2.COLOR_GRAY2BGR))
         overlay_gray = cv2.add(cv2.cvtColor(original, cv2.COLOR_BGR2GRAY), masks)
-        # cv2.imshow('%s' %image_label, overlay)
+        # cv2.imshow('%s' %image_id, overlay)
 
         # Output
-        path_list = [OUTPUT_PATH_IMAGE, OUTPUT_PATH_MASK,
-                     OUTPUT_PATH_IMAGE_MASK_RGB, OUTPUT_PATH_IMAGE_MASK_GRAY]
-        file_list = [image_label+'.png'] * len(path_list)
-        content_list = [original, masks, overlay_rgb, overlay_gray]
+        file_list = [image_id+'.png'] * len(path_list)
+        content_list = [original, masks, overlay_rgb, overlay_gray, labels*100]
         image_writer(path_list, file_list, content_list)
+
+        # Write labels
+        nparray_path = os.path.join(INPUT_PATH, image_id, 'nplabels')
+        check_path(nparray_path)
+        np.save(os.path.join(nparray_path, image_id), labels)
 
     # print total_images
 

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from collections import Counter
 from preprocessing import WORKING_PATH
 
-INPUT = os.path.join(WORKING_PATH, 'summary.csv')
+INPUT = os.path.join(WORKING_PATH, 'cellnumber_summary.csv')
 OUTPUT = WORKING_PATH
 
 
@@ -37,12 +37,12 @@ def generate_statistics(data, filename):
 
 
 if __name__ == "__main__":
-    # Read from summary.csv file into Counter
+    # Read from cellnumber_summary.csv file into Counter
     with open(INPUT, 'r') as f:
         reader = csv.reader(f)
         counter = Counter({rows[0]:int(rows[1]) for rows in reader})
 
-    generate_distribution(counter.values(), 'distribution_total')
+    generate_distribution(counter.values(), 'cellnumber_distribution')
 
     # Find the images with most cells and least cells
     # to look for outliers

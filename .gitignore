@@ -4,3 +4,14 @@
 *.png
 *.pyc
 *.csv
+*.npy
+
+fengge/*
+
+toy/*
+
+*.ipynb
+
+Capsule/logs/*
+
+
