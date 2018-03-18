@@ -1,17 +1,11 @@
 .idea/*
 .idea/*.xml
 
-*.png
-*.pyc
-*.csv
-*.npy
-
+test_data/*
 fengge/*
-
 toy/*
 
+*.pyc
 *.ipynb
 
 Capsule/logs/*
-
-
