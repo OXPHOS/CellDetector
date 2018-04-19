@@ -4,8 +4,13 @@
 test_data/*
 fengge/*
 toy/*
+Capsule/*
+DCN_legacy/*
 
 *.pyc
 *.ipynb
 
-Capsule/logs/*
+
+DCN/logs/*
+DCN/stage1*
+DCN/test_aug

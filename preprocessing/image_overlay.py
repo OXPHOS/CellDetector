@@ -49,14 +49,14 @@ def check_path(path):
 
 def convert_to_labels(labels, img):
     """
-    Map from image to labels for training
+    Map from image to nplabels for training
     2: margin
     1: nuclei
     0: background
     
     :param labels: numpy array. has the same shape as img 
     :param img: input matrix
-    :return: updated labels
+    :return: updated nplabels
     """
     # Narrow down to rectangle with nuclei
     positive_pos = np.where(img)
@@ -64,8 +64,8 @@ def convert_to_labels(labels, img):
     (xmax, ymax) = np.amax(positive_pos, axis=1)
 
     h, w = img.shape
-    for i in xrange(max(xmin-1, 0), min(xmax+2, h)):
-        for j in xrange(max(ymin-1, 0), min(ymax+2, w)):
+    for i in range(max(xmin-1, 0), min(xmax+2, h)):
+        for j in range(max(ymin-1, 0), min(ymax+2, w)):
             k_xmin,k_xmax = max(i-1,0),min(i+2,h)
             k_ymin,k_ymax = max(j-1,0),min(j+2,w)
             cnt = np.count_nonzero(img[k_xmin:k_xmax, k_ymin:k_ymax])
@@ -169,7 +169,7 @@ def main():
         content_list = [original, masks, overlay_rgb, overlay_gray, labels*100]
         image_writer(path_list, file_list, content_list)
 
-        # Write labels
+        # Write nplabels
         nparray_path = os.path.join(INPUT_PATH, image_id, 'nplabels')
         check_path(nparray_path)
         np.save(os.path.join(nparray_path, image_id), labels)
