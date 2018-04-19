@@ -4,24 +4,73 @@ https://www.kaggle.com/c/data-science-bowl-2018
 ### Table of Content
 - [Introduction](README.md#introduction)
 - [Run instruction](README.md#run-instruction)
+- [Dependencies](README.md#dependencies)
 - [Data preprocessing](README.md#data-preprocessing)
   - [Input browse](README.md#input-browse) 
   - [Statistics](README.md#statistics)
   - [Label preparation](README.md#label-preparation)
 - [Model training](README.md#data-training)
+  - [Data Feed](README.md#data-feed)
   - [Architecture](README.md#architecture)
-  - [Kernels](README.md#kernels)
-- [Model evaluation](README.md#model-evaluation)
+  - [Parameters](README.md#parameters)
+- [Model prediction and evaluation](README.md#model-prediction-and-evaluation)
+- [Results](README.md#parameters)
 - [Authors](README.md#authors)
 
 
 ### Introduction
 
+The implementation of 2018 Data Science Bowl competition.
+
+Identify single cell in the input microscope images,
+export the predicted cells with explicitly labeled boundaries,
+and a `csv` file with individual cells.
+
+The implementation is based on [deep contextual network](https://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/view/11789).
+
+Any suggestion is welcome.
+
 
 ### Run instruction
 
-(How to apply the machine to new data)
-(single and batch)
+To pre-process the input data based on competition stage1 training dataset (not provided in the repo)
+, visualize the input samples and generate `y_label` numpy array:
+
+`python preprocessing/image_overlay.py`
+
+To generate model based on competition stage1 training dataset (not provided in the repo): 
+
+`python DCN/deepcn.py`
+
+To run TensorBoard:
+
+`tensorboard --logdir DCN/logs/run1`
+
+To predict:
+
+Change the input and output file path in [`prediction.py`](https://github.com/OXPHOS/CellDetector/blob/master/DCN/prediction.py)
+
+`python DCN/predction.py`
+
+The `prediction.py` will generate the predicted cells with explicitly labeled boundaries,
+and a `csv` file labeling the masks for individual cells.
+
+
+### Dependencies
+
+- Tensorflow
+
+- TensorBoard
+
+- Numpy
+
+- Opencv
+
+- skimage
+
+- [imgaug](https://github.com/aleju/imgaug)
+
+- [tqdm](https://github.com/noamraph/tqdm)
 
 ### Data preprocessing
 
@@ -98,10 +147,94 @@ To better understand the training dataset, we looked into the following 3 attrib
 
 ### Model training
 
+We implemented the training model with [deep contextual network](https://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/view/11789).
+ 
+ 
+#### [Data feed](imageparser.py)
+
+As the input images have different dimensions, they were padded by border mirror reflection and then 
+divided into chunks for data feeding.
+
+Images are then augmented with library [`imgaug`](https://github.com/aleju/imgaug). Following augmentation operations were performed on the training dataset:
+
+- Color inversion
+- GaussianBlur
+- Sharpen
+- GaussianNoise
+
+When training, images are fed via [`BatchReader`](https://github.com/OXPHOS/CellDetector/blob/master/DCN/BatchReader.py) 
+class according to the specified input path and batch size.
+
+
 #### Architecture
 
-#### Kernel
+The tensorboard visualized DCN is below:
 
-### Model evaluation
+![tensorboard_graph](https://github.com/OXPHOS/CellDetector/blob/master/readme_images/tensorboard)
+ 
+Features from inputs were extracted from two `convolution` operations.
+
+Following the 2-step `convolution`, inputs were down-sampled via `max pool`.
+
+After the `max-pool`, 2-step `convolution` was re-performed, and the output was up-sampled to the original input size for prediction.
+
+Down-sampling was performed twice and the inputs used for up-sampling were 1/4 and 1/16 of the original images.
+ 
+The prediction layers are then summed up and returned with the sum layer.
+
+The cross entropy with stochastic descent gradient were used to optimize paramters
+ 
+
+#### Parameters
+
+All convolution layers have kernel of `3*3` and stride of `1`.
+
+All down-sampling has a stride of `2`.
+
+The weight used for background, cell and boundary in loss function are `1`, `2`, `2`.
+
+The input block size is `256*256`, with a stride of `256` and a batch size of `10`.
+
+Data samples were iterate 12 times to obtain better prediction.
+
+
+
+### Model prediction and evaluation
+
+Saved model can be used for [prediction](https://github.com/OXPHOS/CellDetector/blob/master/DCN/prediction.py) 
+via specifying the model path, input and output path.
+
+Images to be predicted are resized and padding to `256*256`, predicted, and resized to the original size.
+
+**Evaluation was not implemented properly. mean IoU would be preferred.**
+
+
+### Result
+
+The [loss](https://github.com/OXPHOS/CellDetector/blob/master/DCN/deepcn.py#L241) 
+associated with the aforementioned parameters is
+ 
+ ![loss](https://github.com/OXPHOS/CellDetector/blob/master/readme_images/loss)
+ 
+ with the cyan being the loss of training samples (every 400 training steps) and orange being
+ the loss of validation samples (every 1000 training steps, the validation samples were then fed 
+ to the training machine as well.)
+ 
+ The model is then used to predict the stage2 test dataset of the competition (not provided in the repo).
+ 
+ The drawbacks of the predictions are:
+ 
+ - Boundaries too thick
+ 
+ - Unable to separate connected cells very well
+ 
+ - Performed very bad on some data samples (listed below)
+ 
+ ![pred1](https://github.com/OXPHOS/CellDetector/blob/master/readme_images/stage2/f9f27d4797e4d6eeca25d42b09c8ba8063394a7512eb954ad7b1ed884f58219d.png)
+ ![pred2](https://github.com/OXPHOS/CellDetector/blob/master/readme_images/stage2/f26da2a67183aad1850a157153450a130b81fca4d8760c3d0b8b8e91a02cf340.png)
+ ![pred3](https://github.com/OXPHOS/CellDetector/blob/master/readme_images/stage2/fae7766ca49d917e00d7967686ac86bdbf2d92b343914560ff428cd376614770.png)
+ ![pred4](https://github.com/OXPHOS/CellDetector/blob/master/readme_images/stage2/fb9b0b2daa50af5e0eb219c08f1f2b8926efbb4827706311435b6c3d2aff8a20.png)
+ 
 
 ### Authors
+
