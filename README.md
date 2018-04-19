@@ -14,8 +14,8 @@ https://www.kaggle.com/c/data-science-bowl-2018
   - [Architecture](README.md#architecture)
   - [Parameters](README.md#parameters)
 - [Model prediction and evaluation](README.md#model-prediction-and-evaluation)
-- [Results](README.md#parameters)
-- [Authors](README.md#authors)
+- [Results](README.md#results)
+- [Contributions](README.md#contributions)
 
 
 ### Introduction
@@ -36,21 +36,21 @@ Any suggestion is welcome.
 To pre-process the input data based on competition stage1 training dataset (not provided in the repo)
 , visualize the input samples and generate `y_label` numpy array:
 
-`python preprocessing/image_overlay.py`
+`$ python preprocessing/image_overlay.py`
 
 To generate model based on competition stage1 training dataset (not provided in the repo): 
 
-`python DCN/deepcn.py`
+`$ python DCN/deepcn.py`
 
 To run TensorBoard:
 
-`tensorboard --logdir DCN/logs/run1`
+`$ tensorboard --logdir DCN/logs/run1`
 
 To predict:
 
 Change the input and output file path in [`prediction.py`](https://github.com/OXPHOS/CellDetector/blob/master/DCN/prediction.py)
 
-`python DCN/predction.py`
+`$ python DCN/predction.py`
 
 The `prediction.py` will generate the predicted cells with explicitly labeled boundaries,
 and a `csv` file labeling the masks for individual cells.
@@ -170,7 +170,7 @@ class according to the specified input path and batch size.
 
 The tensorboard visualized DCN is below:
 
-![tensorboard_graph](https://github.com/OXPHOS/CellDetector/blob/master/readme_images/tensorboard)
+![tensorboard_graph](https://github.com/OXPHOS/CellDetector/blob/master/readme_images/tensorboard.png)
  
 Features from inputs were extracted from two `convolution` operations.
 
@@ -209,16 +209,16 @@ Images to be predicted are resized and padding to `256*256`, predicted, and resi
 **Evaluation was not implemented properly. mean IoU would be preferred.**
 
 
-### Result
+### Results
 
 The [loss](https://github.com/OXPHOS/CellDetector/blob/master/DCN/deepcn.py#L241) 
 associated with the aforementioned parameters is
  
- ![loss](https://github.com/OXPHOS/CellDetector/blob/master/readme_images/loss)
+ ![loss](https://github.com/OXPHOS/CellDetector/blob/master/readme_images/loss.png)
  
  with the cyan being the loss of training samples (every 400 training steps) and orange being
  the loss of validation samples (every 1000 training steps, the validation samples were then fed 
- to the training machine as well.)
+ to the training machine as well).
  
  The model is then used to predict the stage2 test dataset of the competition (not provided in the repo).
  
@@ -236,5 +236,11 @@ associated with the aforementioned parameters is
  ![pred4](https://github.com/OXPHOS/CellDetector/blob/master/readme_images/stage2/fb9b0b2daa50af5e0eb219c08f1f2b8926efbb4827706311435b6c3d2aff8a20.png)
  
 
-### Authors
+### Contributions
+
+As a team of four, other members helped with model comparison, 
+environment setup, debugging and valuable discussions, though they were not willing to 
+reveal their names probably due to the bad performance.
+ 
+The models constructed by other team members were not included in the repo. 
 
